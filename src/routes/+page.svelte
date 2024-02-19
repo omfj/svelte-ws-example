@@ -1,37 +1,43 @@
 <script lang="ts">
-	let ws = $state<WebSocket | null>(null);
-	let count = $state<number | null>(0);
+	const WEBSOCKET_URL = 'ws://localhost:3000/ws/count';
+
+	let ws = $state<WebSocket>();
+	let count = $state<number | null>(null);
 
 	$effect(() => {
-		ws = new WebSocket('ws://localhost:3000/ws/count');
+		ws = new WebSocket(WEBSOCKET_URL);
+
+		return () => ws?.close();
 	});
 
 	$effect(() => {
-		if (ws) {
-			ws.onopen = () => {
-				console.log('connected');
-			};
-			ws.onmessage = (event) => {
-				console.log(event.data);
+		const handleMessage = (event: MessageEvent) => {
+			count = Number(event.data);
+		};
 
-				count = Number(event.data);
-			};
-			ws.onclose = () => {
-				console.log('disconnected');
-			};
-		}
+		ws?.addEventListener('message', handleMessage);
+
+		return () => ws?.removeEventListener('message', handleMessage);
+	});
+
+	$effect(() => {
+		const fetchCount = async () => {
+			const response = await fetch('http://localhost:3000/count');
+			const data = await response.text();
+			count = Number(data);
+		};
+
+		void fetchCount();
 	});
 
 	const increment = () => {
-		if (ws) {
-			ws.send('inc');
-		}
+		if (!ws) return;
+		ws.send('inc');
 	};
 
 	const decrement = () => {
-		if (ws) {
-			ws.send('dec');
-		}
+		if (!ws) return;
+		ws.send('dec');
 	};
 </script>
 
@@ -40,6 +46,6 @@
 
 <p>Count: {count}</p>
 
-<button onclick={increment}>Increment</button>
+<button type="button" onclick={increment}>Increment</button>
 
-<button onclick={decrement}>Decrement</button>
+<button type="button" onclick={decrement}>Decrement</button>

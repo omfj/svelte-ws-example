@@ -6,6 +6,7 @@ import (
 
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 )
 
 type client struct{}
@@ -67,7 +68,13 @@ func main() {
 		return fiber.ErrUpgradeRequired
 	})
 
+	app.Use(cors.New())
+
 	go runHub()
+
+	app.Get("/count", func(c *fiber.Ctx) error {
+		return c.SendString(fmt.Sprintf("%d", count))
+	})
 
 	app.Get("/ws/count", websocket.New(func(c *websocket.Conn) {
 		// Unregister the client and close the connection when the function returns
